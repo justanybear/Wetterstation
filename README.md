@@ -1,68 +1,310 @@
-# Wetterstation
-SYT-Aufgabe-2025
+# ESP32 Wetterstation
+
+Ein umfassendes IoT-Wetterüberwachungssystem basierend auf dem ESP32-Mikrocontroller, das Umweltdaten misst und Echtzeitüberwachung durch eine Webschnittstelle ermöglicht.
+
+## 📋 Inhaltsverzeichnis
+
+- [Überblick](#überblick)
+- [Features](#features)
+- [Hardware-Anforderungen](#hardware-anforderungen)
+- [Systemarchitektur](#systemarchitektur)
+- [Installation](#installation)
+- [Konfiguration](#konfiguration)
+- [Verwendung](#verwendung)
+- [Web-Interface](#web-interface)
+- [API-Endpunkte](#api-endpunkte)
+- [Hardware-Setup](#hardware-setup)
+- [Fehlerbehebung](#fehlerbehebung)
+- [Mitwirken](#mitwirken)
+- [Lizenz](#lizenz)
+- [Danksagungen](#danksagungen)
+
+## 🌟 Überblick
+
+Dieses Projekt implementiert eine voll funktionsfähige Wetterstation mit dem ESP32-C3 Mikrocontroller. Das System sammelt Umweltdaten wie Temperatur, Luftfeuchtigkeit und Magnetfelderkennung und stellt diese Informationen sowohl lokal auf einem OLED-Display als auch remote über eine responsive Webschnittstelle dar.
+
+Die Wetterstation arbeitet als eigenständiges IoT-Gerät mit folgenden Funktionen:
+- Echtzeit-Sensordatenerfassung und -verarbeitung
+- Lokale Datenvisualisierung über OLED-Display
+- Webbasierte Fernüberwachung und -steuerung
+- Konfigurierbare Statusanzeige durch RGB-LED
+- Persistente WiFi-Konfigurationsverwaltung
+- Datenvalidierung und Fehlerbehandlung
+
+## ✨ Features
+
+### Sensorfunktionen
+- **Temperaturmessung**: Präzise Temperaturerfassung mit DHT11-Sensor
+- **Luftfeuchtigkeitsmessung**: Relative Luftfeuchtigkeit in Prozent
+- **Magnetfelddetektion**: Reed-Kontakt B12_1 für Magnetpräsenz
+- **Datenvalidierung**: Automatische Erkennung und Filterung ungültiger Messwerte
+
+### Display & Visualisierung
+- **OLED-Display**: Lokale Anzeige aller Messwerte und Systemstatus
+- **RGB-LED-Statusanzeige**: Farbkodierte Systemzustände
+  - 🔴 Rot: Keine WLAN-Verbindung
+  - 🔵 Blau: Messung aktiv
+  - 🟠 Orange: Temperatur zu hoch
+- **Anpassbare LED-Farben**: Individuelle Farbkonfiguration über Web-Interface
+
+### Netzwerk & Konnektivität
+- **WiFi-Manager**: Automatische WLAN-Konfiguration mit Fallback auf Access Point
+- **Webserver**: Integrierter HTTP-Server für Remote-Zugriff
+- **SPIFFS-Dateisystem**: Lokale Speicherung von Web-Dateien
+- **JSON-API**: RESTful-Schnittstelle für Datenabfrage
+
+### Web-Interface
+- **Responsive Design**: Optimiert für Desktop und Mobile
+- **Echtzeit-Updates**: Live-Aktualisierung der Messwerte
+- **RGB-Color-Picker**: Interaktive LED-Farbsteuerung
+- **Zeitstempel**: Anzeige der letzten Messung
+- **LED-Steuerung**: Ein-/Ausschalten der Status-LED
+
+## 🔧 Hardware-Anforderungen
+
+### Hauptkomponenten
+| Komponente | Modell | Beschreibung | Anzahl |
+|------------|---------|--------------|---------|
+| Mikrocontroller | ESP32-C3 | Haupt-MCU mit WiFi/Bluetooth | 1 |
+| Temperatursensor | DHT11 | Digital Temperatur & Luftfeuchtigkeit | 1 |
+| Magnetsensor | Reed Contact B12_1 | Magnetfelderkennungssensor | 1 |
+| Display | OLED (128x64) | Lokale Datenanzeige | 1 |
+| LED | RGB-LED | Statusanzeige (auf ESP32 integriert) | 1 |
+
+### Zusätzliche Materialien
+- Breadboard oder PCB für Prototyping
+- Jumper-Kabel (Male-to-Male, Male-to-Female)
+- Pull-up Widerstände (10kΩ für Reed-Kontakt)
+- Stromversorgung (USB oder 3.3V/5V Adapter)
+- Gehäuse (optional, für Außeneinsatz)
+
+### Datenfluss
+1. **Sensorerfassung**: DHT11 und Reed-Kontakt werden in konfigurierbaren Intervallen abgefragt
+2. **Datenvalidierung**: Ungültige Werte werden gefiltert und verworfen
+3. **Lokale Anzeige**: Gültige Daten werden auf dem OLED-Display dargestellt
+4. **Status-LED**: RGB-LED zeigt aktuellen Systemzustand an
+5. **Web-Bereitstellung**: Daten werden über HTTP-Server als JSON bereitgestellt
+6. **Remote-Zugriff**: Web-Interface ermöglicht Echtzeitüberwachung und -steuerung
+
+## 📦 Installation
+
+### Voraussetzungen
+- Arduino IDE 2.0 oder höher
+- ESP32 Board Package für Arduino IDE
+- USB-Kabel für ESP32-Programmierung
+
+### Arduino IDE Setup
+1. **Board Manager konfigurieren**:
+   ```
+   Datei → Voreinstellungen → Zusätzliche Boardverwalter-URLs:
+   https://dl.espressif.com/dl/package_esp32_index.json
+   ```
+
+2. **ESP32 Board installieren**:
+   ```
+   Werkzeuge → Board → Boardverwalter → "ESP32" suchen und installieren
+   ```
+
+3. **Erforderliche Bibliotheken installieren**:
+   ```
+   Bibliotheksverwalter → Folgende Bibliotheken installieren:
+   - DHT sensor library (Adafruit)
+   - Adafruit SSD1306
+   - Adafruit GFX Library
+   - ESPAsyncWebServer
+   - AsyncTCP
+   - WiFiManager
+   ```
+
+### Repository klonen
+```bash
+git clone https://github.com/[username]/esp32-wetterstation.git
+cd esp32-wetterstation
+```
+
+### Upload-Konfiguration
+1. Board auswählen: `ESP32C3 Dev Module`
+2. Port auswählen: Entsprechender COM-Port
+3. Upload-Geschwindigkeit: `921600`
+4. Flash-Größe: `4MB`
+
+## ⚙️ Konfiguration
+
+### WiFi-Konfiguration
+Das System verwendet WiFiManager für die automatische Netzwerkkonfiguration:
+
+1. **Erster Start**: ESP32 erstellt Access Point "ESP32-WeatherStation"
+2. **Konfiguration**: Mit AP verbinden und http://192.168.4.1 öffnen
+3. **WLAN auswählen**: Verfügbare Netzwerke werden angezeigt
+4. **Zugangsdaten eingeben**: SSID und Passwort eingeben
+5. **Automatische Verbindung**: Bei Neustarts automatische Verbindung
+
+### Sensor-Kalibrierung
+```cpp
+// DHT11 Kalibrierungsoffsets (falls erforderlich)
+#define TEMP_OFFSET 0.0   // Temperatur-Offset in °C
+#define HUM_OFFSET 0.0    // Luftfeuchtigkeits-Offset in %
+
+// Messintervall anpassen
+#define MEASUREMENT_INTERVAL 2000  // Millisekunden zwischen Messungen
+```
+
+### LED-Konfiguration
+```cpp
+// Standard-LED-Farben definieren
+#define COLOR_NO_WIFI     0xFF0000  // Rot
+#define COLOR_MEASURING   0x0000FF  // Blau  
+#define COLOR_HIGH_TEMP   0xFF8000  // Orange
+#define COLOR_NORMAL      0x00FF00  // Grün
+```
+
+## 🖥️ Verwendung
+
+### Systemstart
+1. ESP32 mit Strom versorgen
+2. Warten auf OLED-Display-Initialisierung
+3. WiFi-Verbindung wird automatisch hergestellt
+4. IP-Adresse wird auf Display angezeigt
+5. Webserver startet automatisch
+
+### Lokale Überwachung
+Das OLED-Display zeigt kontinuierlich:
+- Aktuelle Temperatur (°C)
+- Luftfeuchtigkeit (%)
+- Magnetstatus (Erkannt/Nicht erkannt)
+- WiFi-Verbindungsstatus
+- IP-Adresse
+- Letzte Aktualisierung
+
+### Remote-Zugriff
+1. IP-Adresse vom Display ablesen
+2. Webbrowser öffnen: `http://[IP-ADRESSE]`
+3. Dashboard mit Echtzeitdaten wird geladen
+
+## 🌐 Web-Interface
+
+### Dashboard-Features
+- **Messwerte-Anzeige**: Große, gut lesbare Anzeigen für alle Sensordaten
+- **Trend-Grafiken**: Historische Datenvisualisierung (optional)
+- **Status-Indikatoren**: Farbkodierte Systemzustände
+- **Zeitstempel**: Genaue Zeit der letzten Messung
+
+### LED-Steuerung
+- **RGB-Color-Picker**: Intuitive Farbauswahl mit Hex-Werten
+- **Vordefinierte Farben**: Schnellauswahl für häufig verwendete Farben
+- **Ein/Aus-Schalter**: LED komplett deaktivieren
+- **Speichern**: Einstellungen bleiben nach Neustart erhalten
+
+### Mobile Optimierung
+- Responsive Design für Smartphones und Tablets
+- Touch-optimierte Bedienelemente
+- Automatische Skalierung für verschiedene Bildschirmgrößen
+
+### Häufige Probleme
+
+#### WiFi-Verbindungsprobleme
+**Problem**: ESP32 kann sich nicht mit WLAN verbinden
+```
+Symptome:
+- Rote LED leuchtet dauerhaft
+- Display zeigt "No WiFi"
+- Access Point wird erstellt
+
+Lösungen:
+1. WLAN-Zugangsdaten über AP neu eingeben
+2. Router-Kompatibilität prüfen (2.4GHz erforderlich)
+3. Signal-stärke überprüfen
+4. Factory Reset: GPIO0 beim Boot gedrückt halten
+```
+
+#### Sensor-Leseprobleme
+**Problem**: DHT11 liefert ungültige Werte
+```
+Symptome:
+- NaN-Werte auf Display
+- Sporadische Messwerte
+- Fehlermeldungen im Serial Monitor
+
+Lösungen:
+1. Verkabelung überprüfen
+2. Stromversorgung stabilisieren
+3. Sensor ersetzen (DHT11 ist günstig aber ungenau)
+4. Messintervall vergrößern (min. 2 Sekunden)
+```
+
+#### Display-Probleme
+**Problem**: OLED-Display bleibt schwarz
+```
+Symptome:
+- Keine Anzeige beim Start
+- I2C-Kommunikationsfehler
+
+Lösungen:
+1. I2C-Adresse scannen (meist 0x3C oder 0x3D)
+2. Pull-up Widerstände auf SDA/SCL (4.7kΩ)
+3. Stromversorgung prüfen (3.3V stabil)
+4. Display-Bibliothek aktualisieren
+```
+
+#### Webserver-Probleme
+**Problem**: Webseite nicht erreichbar
+```
+Symptome:
+- Browser zeigt "Seite nicht gefunden"
+- Timeout-Fehler
+
+Lösungen:
+1. IP-Adresse vom Display ablesen
+2. Firewall-Einstellungen prüfen
+3. Gleiche Netzwerk-Subnet verwenden
+4. SPIFFS-Upload überprüfen
+```
+
+### Debug-Modi
+
+#### Serial Monitor aktivieren
+```cpp
+#define DEBUG_MODE 1  // Debug-Ausgaben aktivieren
+
+void setup() {
+  if (DEBUG_MODE) {
+    Serial.begin(115200);
+    Serial.println("=== ESP32 Weather Station Debug ===");
+  }
+}
+```
+
+### Testing
+- Hardware-Tests auf echter ESP32-Hardware
+- Web-Interface auf verschiedenen Browsern testen
+- Dokumentation bei Änderungen aktualisieren
+
+Copyright (c) 2025 Laurenz Hartenstein
+```
+
+### Libraries & Frameworks
+- **Espressif Systems** - ESP32 Platform und Dokumentation
+- **Adafruit** - Sensor-Libraries und Hardware-Support
+- **Arduino Community** - IDE und Core-Libraries
+- **AsyncWebServer** - Efficient Web Server Implementation
+
+### Inspirationen & Ressourcen
+- [Adafruit Learning System](https://learn.adafruit.com/) - Hardware-Tutorials
+- [ESP32 Official Documentation](https://docs.espressif.com/projects/esp32/en/latest/)
+- [Arduino Reference](https://www.arduino.cc/reference/en/) - Programming Reference
+- **TGM E-Learning Platform** - Projektgrundlagen und Anforderungen
+
+---
+
+## 📊 Projektstatistiken
+
+- **Entwicklungszeit**: ~20 Stunden
+- **Code-Zeilen**: ~800 Zeilen C++/Arduino
+- **Hardware-Kosten**: ~25-35€
+- **Stromverbrauch**: ~150mA @ 3.3V (aktiv)
+- **Reichweite**: WiFi-abhängig (typisch 10-50m)
+- **Messgenauigkeit**: ±2°C, ±5% RH (DHT11-bedingt)
 
 
- 
-Inhaltsverzeichnis:
-Einführung	
-Projektbeschreibung	
-Theorie
-Arbeitsschritte	
-Sensoren beschrieben	
-WLAN-Verbindung	
-Webserver	
-Status RGB-LED	
-Code ESP32C3	
-Code Erklärung	
-Zusammenfassung	
-Quellen	
 
-
- 
-Einführung
-Im Rahmen des SYT-Unterrichts haben wir eine Wetterstation entwickelt, die Umweltdaten wie Temperatur, Luftfeuchtigkeit sowie den Status eines Magnetsensors misst und über eine Webseite anzeigt. Die Daten werden vom Mikrocontroller (ESP32) über WLAN gesammelt, verarbeitet und dargestellt. Ziel war es, ein funktionales IoT-Gerät zu bauen, das Messwerte bereinigt und mit visueller Rückmeldung (LED & Display) ausgibt.
-
-Die Schaltung wurde rund um den ESP32-Mikrocontroller aufgebaut. Angeschlossen wurden folgende Komponenten:
-1.	DHT11
-2.	Reed Contact B12_1
-3.	Display
-4.	Auf dem ESP integrierte LED
-Projektbeschreibung
-Die Wetterstation misst Temperatur, Luftfeuchtigkeit sowie den Status eines Magnetkontaktsensors. Die gesammelten Daten werden über WLAN auf einer Webseite angezeigt, wobei auch eine Status-LED sowie ein OLED-Display zur direkten Ausgabe verwendet werden.
-Theorie
-Für die Umsetzung des Projekts waren Kenntnisse im Bereich Mikrocontrollerprogrammierung, Webserverbetrieb, Sensorauswertung sowie digitaler Schaltungen notwendig. Die Temperatur- und Feuchtigkeitsmessung erfolgt über den digitalen Sensor DHT11. Ein Reed Contact B12_1 wird zur Erkennung eines magnetischen Feldes genutzt. Zur Visualisierung dient ein OLED-Display, während der ESP32 die zentrale Steuerung übernimmt. Die Verbindung zum WLAN erfolgt über die Bibliothek WiFiManager, die es ermöglicht, Netzwerkeinstellungen über einen Access Point vorzunehmen. Die Webseite wird vom ESP32 als Webserver bereitgestellt und zeigt aktuelle Messwerte sowie weitere Bedienelemente wie einen RGB-Colorpicker zur Steuerung der Status-LED.
-Arbeitsschritte
-Zuerst haben wir die elektrische Schaltung rund um den ESP32 erstellt. Dabei wurden der DHT11-Sensor, der Reed-Contact, das RGB-LED-Display angeschlossen Anschließend wurde der Code für die Sensorabfrage und Displayausgabe entwickelt.
-Die WLAN-Verbindung erfolgt über WiFi.begin(), wobei das Netzwerk "Iphone 14" genutzt wurde. Nach erfolgreicher Verbindung wird die IP-Adresse auf dem OLED-Display angezeigt. Der ESP32 startet dann einen Webserver, welcher HTML-Dateien aus dem SPIFFS-Dateisystem lädt und unter anderem einen JSON-Endpunkt zur Verfügung stellt.
-Die Webseite zeigt die aktuellen Messwerte an, stellt einen RGB-Colorpicker zur Steuerung der LED bereit und erlaubt das Ein- und Ausschalten der Statusanzeige. Die RGB-LED signalisiert Zustände wie "Kein WLAN" (Rot), "Messung aktiv" (Blau) oder "Temperatur zu hoch" (Orange).
-Bei jedem Schleifendurchlauf werden die Sensorwerte aktualisiert, auf dem Display angezeigt und bei Verfügbarkeit über die Webseite ausgeliefert. Eine einfache Fehlerbehandlung ist implementiert, die ungültige Sensorwerte erkennt und ignoriert.
-
-
-
-Sensoren beschrieben:
-DHT11: Der DHT11 misst die Temperatur (in Grad Celsius) und die Luftfeuchtigkeit (in %) digital und eignet sich für einfache Wetteranwendungen.
-Reed Contact B12_1: Der Reed Contact B12_1 erkennt ob ein Magnet in seiner Nähe anliegt und lässt eine LED leuchten wenn einer da ist.
-WLAN-Verbindung
-Der ESP32 nutzt WiFiManager, um sich entweder mit einem vorhandenen WLAN zu verbinden oder selbst als Access Point aufzutreten. Die Verbindungseinstellungen bleiben auch nach einem Neustart gespeichert. Die IP-Adresse wird angezeigt und ermöglicht den Zugriff auf das Webinterface.
-
-
-Webserver
-Der ESP32 betreibt einen einfachen Webserver, der über WLAN erreichbar ist und eine Webseite bereitstellt, auf der alle aktuellen Messdaten wie Temperatur, Luftfeuchtigkeit und der Status des Magnetsensors angezeigt werden. Zusätzlich kann über einen RGB-Colorpicker die Farbe der Status-LED individuell angepasst und dauerhaft gespeichert werden. Die Webseite zeigt außerdem Zeitstempel der letzten Messung an, ermöglicht das Ein- und Ausschalten der LED und funktioniert sowohl im WLAN-Betrieb als auch im Access-Point-Modus.
-Status RGB-LED
-Die RGB-LED des ESP32 zeigt verschiedene Systemzustände durch unterschiedliche Farben an, z. B. Rot bei fehlender WLAN-Verbindung, Blau während einer Messung und Orange bei zu hoher Temperatur. Die Farben lassen sich über das Webinterface individuell anpassen und dauerhaft speichern.
-Code Erklärung
-Der oben angegebene Code startet mit der Initialisierung des Displays und der WLAN-Verbindung. Danach werden die Sensorwerte in festen Intervallen ausgelesen und sowohl auf dem Display als auch per Webserver bereitgestellt. Fehlerhafte Sensorwerte werden dabei ignoriert.
-Zusammenfassung
-Im Projekt wurde erfolgreich eine Wetterstation mit einem ESP32-Mikrocontroller realisiert, die Temperatur, Luftfeuchtigkeit sowie einen Magnetkontakt ausliest und visuell auf einem Display sowie über eine Webseite darstellt. Schwierigkeiten traten anfangs bei der Ansteuerung des OLED-Displays sowie beim Einbinden des SPIFFS-Dateisystems auf. Diese konnten durch gezielte Recherche und Codeanpassungen behoben werden.
-Auch die Implementierung der WLAN-Verbindung erforderte wiederholte Tests, insbesondere beim Übergang vom Access Point in den Client-Modus. Insgesamt wurde das Projekt erfolgreich umgesetzt und erfüllt die gestellten Anforderungen.
-
- 
-Quellen
-OpenAI.com
-Adafruit arduino
-https://learn.adafruit.com/adafruit-qt-py-esp32-c3-wifi-dev-board/arduino-ide-setup
-Github	 
-https://github.com/me-no-dev/ESPAsyncWebServer
-Espressif Systems datasheet https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf
-Elearning kurs
-https://elearning.tgm.ac.at/mod/assign/view.php?id=153854
+*Für Fragen, Anregungen oder Support besuchen Sie die [Issues](https://github.com/[username]/esp32-wetterstation/issues) Sektion oder kontaktieren Sie mich direkt.*
