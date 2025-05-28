@@ -7,17 +7,12 @@ Ein umfassendes IoT-Wetterüberwachungssystem basierend auf dem ESP32-Mikrocontr
 - [Überblick](#überblick)
 - [Features](#features)
 - [Hardware-Anforderungen](#hardware-anforderungen)
-- [Systemarchitektur](#systemarchitektur)
 - [Installation](#installation)
 - [Konfiguration](#konfiguration)
 - [Verwendung](#verwendung)
 - [Web-Interface](#web-interface)
-- [API-Endpunkte](#api-endpunkte)
 - [Hardware-Setup](#hardware-setup)
 - [Fehlerbehebung](#fehlerbehebung)
-- [Mitwirken](#mitwirken)
-- [Lizenz](#lizenz)
-- [Danksagungen](#danksagungen)
 
 ## 🌟 Überblick
 
