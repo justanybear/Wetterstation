@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Umwelt-Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .sensor-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .sensor-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sensor-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .temp-card {
+            border-color: #ff6b6b;
+        }
+        .temp-card .sensor-icon { color: #ff6b6b; }
+        .temp-card .sensor-value { color: #ff6b6b; }
+
+        .humidity-card {
+            border-color: #4ecdc4;
+        }
+        .humidity-card .sensor-icon { color: #4ecdc4; }
+        .humidity-card .sensor-value { color: #4ecdc4; }
+
+        .pressure-card {
+            border-color: #45b7d1;
+        }
+        .pressure-card .sensor-icon { color: #45b7d1; }
+        .pressure-card .sensor-value { color: #45b7d1; }
+
+        .status-section {
+            margin-bottom: 40px;
+        }
+
+        .current-status {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .current-status h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .color-config {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .color-config h3 {
+            margin-bottom: 25px;
+            text-align: center;
+            color: #333;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .color-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .color-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .color-preview {
+            height: 50px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .color-input {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-input:hover {
+            transform: scale(1.05);
+        }
+
+        .last-update {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .offline-indicator {
+            background: #dc3545;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .color-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌡️ ESP32 Umwelt-Monitor</h1>
+            <p>Temperatur, Luftfeuchtigkeit & Systemstatus</p>
+        </div>
+
+        <div class="content">
+            <div class="offline-indicator" id="offlineIndicator">
+                ⚠️ Verbindung zum ESP32 unterbrochen
+            </div>
+
+            <!-- Sensor Daten -->
+            <div class="sensor-grid">
+                <div class="sensor-card temp-card">
+                    <div class="sensor-icon">🌡️</div>
+                    <div class="sensor-value" id="tempValue">--°C</div>
+                    <div class="sensor-label">Temperatur</div>
+                </div>
+                
+                <div class="sensor-card humidity-card">
+                    <div class="sensor-icon">💧</div>
+                    <div class="sensor-value" id="humValue">--%</div>
+                    <div class="sensor-label">Luftfeuchtigkeit</div>
+                </div>
+                
+                <div class="sensor-card pressure-card">
+                    <div class="sensor-icon">📊</div>
+                    <div class="sensor-value" id="pressValue">-- hPa</div>
+                    <div class="sensor-label">Luftdruck</div>
+                </div>
+            </div>
+
+            <!-- Aktueller Status -->
+            <div class="status-section">
+                <div class="current-status">
+                    <h3>🔧 Aktueller Systemstatus</h3>
+                    <div class="status-indicator" id="currentStatus" style="background-color: #6c757d;">
+                        <span class="status-dot"></span>
+                        <span id="statusText">Warte auf Daten...</span>
+                    </div>
+                </div>
+
+                <!-- Farbkonfiguration -->
+                <div class="color-config">
+                    <h3>🎨 Status-Farben konfigurieren</h3>
+                    <div class="color-grid">
+                        <div class="color-item">
+                            <div class="color-preview" id="previewOff" style="background-color: #000000;">
+                                Display Aus
+                            </div>
+                            <div class="color-label">🔴 Display aus (Magnet entfernt)</div>
+                            <input type="color" class="color-input" id="colorOff" value="#000000">
+                        </div>
+
+                        <div class="color-item">
+                            <div class="color-preview" id="previewNormal" style="background-color: #28a745;">
+                                Normal Betrieb
+                            </div>
+                            <div class="color-label">✅ Normal (Sensor OK)</div>
+                            <input type="color" class="color-input" id="colorNormal" value="#28a745">
+                        </div>
+
+                        <div class="color-item">
+                            <div class="color-preview" id="previewError" style="background-color: #dc3545;">
+                                Sensor Fehler
+                            </div>
+                            <div class="color-label">❌ Fehler (Sensor Problem)</div>
+                            <input type="color" class="color-input" id="colorError" value="#dc3545">
+                        </div>
+
+                        <div class="color-item">
+                            <div class="color-preview" id="previewConnecting" style="background-color: #007bff;">
+                                Verbindet
+                            </div>
+                            <div class="color-label">🔄 Verbinden (WLAN Setup)</div>
+                            <input type="color" class="color-input" id="colorConnecting" value="#007bff">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="last-update" id="lastUpdate">
+                Letzte Aktualisierung: --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Farbkonfiguration
+        const colorElements = {
+            off: { input: document.getElementById('colorOff'), preview: document.getElementById('previewOff') },
+            normal: { input: document.getElementById('colorNormal'), preview: document.getElementById('previewNormal') },
+            error: { input: document.getElementById('colorError'), preview: document.getElementById('previewError') },
+            connecting: { input: document.getElementById('colorConnecting'), preview: document.getElementById('previewConnecting') }
+        };
+
+        // Status-Mapping
+        const statusMap = {
+            'aus': 'off',
+            'normal': 'normal',
+            'fehler': 'error',
+            'verbindet': 'connecting'
+        };
+
+        const statusLabels = {
+            'aus': '🔴 Display Aus',
+            'normal': '✅ Normal Betrieb',
+            'fehler': '❌ Sensor Fehler',
+            'verbindet': '🔄 Verbindung läuft'
+        };
+
+        // Farben laden und speichern
+        function loadColors() {
+            Object.entries(colorElements).forEach(([key, elements]) => {
+                const saved = localStorage.getItem(`color_${key}`);
+                if (saved) {
+                    elements.input.value = saved;
+                    elements.preview.style.backgroundColor = saved;
+                }
+            });
+        }
+
+        function saveColor(key, color) {
+            localStorage.setItem(`color_${key}`, color);
+            colorElements[key].preview.style.backgroundColor = color;
+            
+            // An ESP32 senden
+            fetch(`/setColor?state=${key}&value=${encodeURIComponent(color)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        console.error(`Fehler beim Senden der Farbe ${key}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Netzwerkfehler:', error);
+                });
+        }
+
+        // Event Listener für Farbänderungen
+        Object.entries(colorElements).forEach(([key, elements]) => {
+            elements.input.addEventListener('input', (e) => {
+                saveColor(key, e.target.value);
+            });
+        });
+
+        // Daten vom ESP32 abrufen
+        let isOnline = true;
+        
+        function updateData() {
+            fetch('/data')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    // Online-Status
+                    if (!isOnline) {
+                        isOnline = true;
+                        document.getElementById('offlineIndicator').style.display = 'none';
+                    }
+
+                    // Sensordaten aktualisieren
+                    document.getElementById('tempValue').textContent = `${data.temp}°C`;
+                    document.getElementById('humValue').textContent = `${data.hum}%`;
+                    document.getElementById('pressValue').textContent = `${data.pres} hPa`;
+
+                    // Status aktualisieren
+                    const statusKey = statusMap[data.state] || 'connecting';
+                    const statusColor = colorElements[statusKey].input.value;
+                    const statusElement = document.getElementById('currentStatus');
+                    const statusText = document.getElementById('statusText');
+                    
+                    statusElement.style.backgroundColor = statusColor;
+                    statusText.textContent = statusLabels[data.state] || 'Unbekannt';
+
+                    // Letzte Aktualisierung
+                    document.getElementById('lastUpdate').textContent = 
+                        `Letzte Aktualisierung: ${new Date().toLocaleTimeString()}`;
+                })
+                .catch(error => {
+                    console.error('Fehler beim Laden der Daten:', error);
+                    if (isOnline) {
+                        isOnline = false;
+                        document.getElementById('offlineIndicator').style.display = 'block';
+                    }
+                });
+        }
+
+        // Initialisierung
+        loadColors();
+        updateData();
+        setInterval(updateData, 3000); // Alle 3 Sekunden aktualisieren
+    </script>
+</body>
+</html>
